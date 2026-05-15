@@ -1,0 +1,347 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-tamcon-lottery-api",
+    "name": "Tamcon Lottery API",
+    "description": "Weekly lottery backend — OTP auth, JWT (Bearer or httpOnly cookies), Chapa payments, admin draw.\n\n**Postman:** set `useHttpOnlyCookies: false` on **Verify OTP** so tokens return in JSON; the test script saves `accessToken` and `refreshToken`.\n\n**Variables:** `host` (root, e.g. `http://localhost:4000`) for `/health`; `baseUrl` for API routes (e.g. `http://localhost:4000/api/v1`). Update both when changing environment.\n\n**Webhook:** requires `x-chapa-signature` HMAC-SHA256 of the raw body; easiest to test from Chapa dashboard or a signing script.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "host", "value": "http://localhost:4000" },
+    { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "drawId", "value": "" },
+    { "key": "chapaTxRef", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "System",
+      "item": [
+        {
+          "name": "Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{host}}/health"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Create account",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"fullName\": \"New User\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "description": "Creates a customer account. Then use Request OTP and Verify OTP to sign in."
+          },
+          "response": []
+        },
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"you@example.com\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/otp/request"
+          },
+          "response": []
+        },
+        {
+          "name": "Verify OTP",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const d = json && json.data;",
+                  "  if (d && d.accessToken) {",
+                  "    pm.collectionVariables.set('accessToken', d.accessToken);",
+                  "  }",
+                  "  if (d && d.refreshToken) {",
+                  "    pm.collectionVariables.set('refreshToken', d.refreshToken);",
+                  "  }",
+                  "} catch (e) {}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"you@example.com\",\n  \"otp\": \"000000\",\n  \"useHttpOnlyCookies\": false\n}"
+            },
+            "url": "{{baseUrl}}/auth/otp/verify",
+            "description": "Use `useHttpOnlyCookies: false` in Postman so tokens are returned in JSON."
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh session",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/refresh",
+            "description": "With cookie-only auth, send `{}`."
+          },
+          "response": []
+        },
+        {
+          "name": "Me",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me"
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/auth/logout"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Lottery",
+      "item": [
+        {
+          "name": "Current draw",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/lottery/current"
+          },
+          "response": []
+        },
+        {
+          "name": "My tickets",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/lottery/tickets/mine?page=1&limit=20"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Payments",
+      "item": [
+        {
+          "name": "Create checkout (Chapa)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const d = json && json.data;",
+                  "  if (d && d.txRef) {",
+                  "    pm.collectionVariables.set('chapaTxRef', d.txRef);",
+                  "  }",
+                  "} catch (e) {}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"quantity\": 1\n}"
+            },
+            "url": "{{baseUrl}}/payments/checkout",
+            "description": "Test script saves `chapaTxRef` from `data.txRef` when present."
+          },
+          "response": []
+        },
+        {
+          "name": "Chapa return callback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/chapa/callback?tx_ref={{chapaTxRef}}",
+            "description": "Set `chapaTxRef` to the `tx_ref` returned from checkout (or from Chapa redirect)."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Admin",
+      "item": [
+        {
+          "name": "KPIs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/kpis"
+          },
+          "response": []
+        },
+        {
+          "name": "Chart — revenue by week",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/charts/revenue-weeks"
+          },
+          "response": []
+        },
+        {
+          "name": "Wallet transactions",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/transactions?page=1&limit=50"
+          },
+          "response": []
+        },
+        {
+          "name": "List draws",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "try {",
+                  "  const json = pm.response.json();",
+                  "  const first = json && json.data && json.data.items && json.data.items[0];",
+                  "  if (first && first._id) {",
+                  "    pm.collectionVariables.set('drawId', first._id);",
+                  "  }",
+                  "} catch (e) {}",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/draws?page=1&limit=50"
+          },
+          "response": []
+        },
+        {
+          "name": "Draw history",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/admin/draws/history?page=1&limit=20"
+          },
+          "response": []
+        },
+        {
+          "name": "Trigger weekly draw",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
+            },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"drawId\": \"{{drawId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/admin/draws/trigger",
+            "description": "Run **List draws** first to populate `drawId` via the test script."
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Chapa Webhook (manual)",
+      "item": [
+        {
+          "name": "Webhook — charge.success",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "x-chapa-signature",
+                "value": "<HMAC-SHA256 hex of raw body using CHAPA_WEBHOOK_SECRET>"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event\": \"charge.success\",\n  \"status\": \"success\",\n  \"tx_ref\": \"{{chapaTxRef}}\",\n  \"amount\": \"10.00\",\n  \"currency\": \"ETB\"\n}"
+            },
+            "url": "{{baseUrl}}/payments/chapa/webhook"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
