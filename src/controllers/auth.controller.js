@@ -36,8 +36,8 @@ export const verifyOtp = asyncHandler(async (req, res) => {
     success: true,
     data: {
       user: toPublicUser(tokens.user),
-      accessToken: useHttpOnlyCookies ? undefined : tokens.accessToken,
-      refreshToken: useHttpOnlyCookies ? undefined : tokens.refreshToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     },
   });
 });
@@ -56,8 +56,8 @@ export const refresh = asyncHandler(async (req, res) => {
     success: true,
     data: {
       user: toPublicUser(tokens.user),
-      accessToken: useCookies ? undefined : tokens.accessToken,
-      refreshToken: useCookies ? undefined : tokens.refreshToken,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
     },
   });
 });

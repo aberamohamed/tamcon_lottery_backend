@@ -4,6 +4,7 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/
 import { ApiError } from '../utils/ApiError.js';
 import { User } from '../models/User.js';
 import { normalizeEmail } from '../utils/email.js';
+import { findUserByIdForAuth } from './user.service.js';
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -40,7 +41,7 @@ export async function verifyOtpAndIssueTokens(email, otp) {
   const loggedIn = await completeLoginForUser(normalizedEmail);
   const payload = {
     sub: String(loggedIn._id),
-    rtv: loggedIn.refreshTokenVersion,
+    rtv: loggedIn.refreshTokenVersion ?? 0,
     role: loggedIn.role,
   };
   return {
@@ -57,14 +58,20 @@ export async function refreshSession(refreshToken) {
   } catch {
     throw new ApiError(401, 'Invalid refresh token');
   }
-  const user = await User.findById(decoded.sub).select('+refreshTokenVersion');
-  if (!user || user.refreshTokenVersion !== decoded.rtv) {
+  const user = await findUserByIdForAuth(decoded.sub);
+  const tokenRtv = Number(decoded.rtv ?? 0);
+  const userRtv = Number(user?.refreshTokenVersion ?? 0);
+  if (!user || tokenRtv !== userRtv) {
     throw new ApiError(401, 'Invalid refresh token');
   }
   if (!ALLOWED_LOGIN_ROLES.includes(user.role)) {
     throw new ApiError(403, 'This account is not allowed to sign in');
   }
-  const payload = { sub: String(user._id), rtv: user.refreshTokenVersion, role: user.role };
+  const payload = {
+    sub: String(user._id),
+    rtv: user.refreshTokenVersion ?? 0,
+    role: user.role,
+  };
   return {
     user,
     accessToken: signAccessToken(payload),

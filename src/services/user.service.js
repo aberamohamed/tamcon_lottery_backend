@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { normalizeEmail } from '../utils/email.js';
@@ -6,6 +7,19 @@ export const ALLOWED_LOGIN_ROLES = ['customer', 'admin'];
 
 function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Load user for JWT auth — supports ObjectId and string `_id` (some manual Atlas imports). */
+export async function findUserByIdForAuth(id) {
+  if (id == null || id === '') return null;
+  const idStr = String(id);
+
+  if (mongoose.Types.ObjectId.isValid(idStr)) {
+    const byObjectId = await User.findById(idStr).select('+refreshTokenVersion');
+    if (byObjectId) return byObjectId;
+  }
+
+  return User.findOne({ _id: idStr }).select('+refreshTokenVersion');
 }
 
 /** Finds user by normalized email; falls back to case-insensitive match for legacy Atlas rows. */
