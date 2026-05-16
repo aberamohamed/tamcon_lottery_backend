@@ -19,10 +19,10 @@ export const users = asyncHandler(async (req, res) => {
 });
 
 /**
- * Retrieves data for the revenue chart spanning the last 24 weeks.
+ * Retrieves data for the revenue chart spanning the last 6 weeks.
  */
 export const revenueChart = asyncHandler(async (req, res) => {
-  const data = await adminService.revenueByWeekChart(24);
+  const data = await adminService.revenueByWeekChart(6);
   res.json({ success: true, data });
 });
 
