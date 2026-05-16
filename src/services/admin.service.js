@@ -4,40 +4,50 @@ import { Ticket } from '../models/Ticket.js';
 import { LotteryDraw } from '../models/LotteryDraw.js';
 import { WalletTransaction } from '../models/WalletTransaction.js';
 import { DrawWinner } from '../models/DrawWinner.js';
+import { env } from '../config/env.js';
 
 /**
  * Retrieves key performance indicators for the admin dashboard.
- * Aggregates total users, revenue, tickets sold, prize pools, winners, and completed draws.
+ * Focuses on real-time metrics for the current week and last completed draw.
  * 
  * @returns {Promise<Object>} An object containing the KPI metrics.
  */
 export async function getDashboardKpis() {
-  const [totalUsers, revenueAgg, ticketsSold, prizePoolAgg, winnersCount, drawsCompleted] =
-    await Promise.all([
-      User.countDocuments(),
-      Payment.aggregate([
-        { $match: { status: 'success' } },
-        { $group: { _id: null, total: { $sum: '$amount' } } },
-      ]),
-      Ticket.countDocuments(),
-      LotteryDraw.aggregate([
-        { $match: { status: 'completed' } },
-        { $group: { _id: null, total: { $sum: '$prizePool' } } },
-      ]),
-      DrawWinner.countDocuments(),
-      LotteryDraw.countDocuments({ status: 'completed' }),
-    ]);
+  const [totalUsers, currentDraw, lastCompletedDraw] = await Promise.all([
+    User.countDocuments(),
+    LotteryDraw.findOne({ status: 'open' }).sort({ createdAt: -1 }),
+    LotteryDraw.findOne({ status: 'completed' }).sort({ drawDate: -1 }),
+  ]);
 
-  const totalRevenue = revenueAgg[0]?.total || 0;
-  const totalPrizePoolFromDraws = prizePoolAgg[0]?.total || 0;
+  let currentWeekTicketsSold = 0;
+  let currentWeekRevenue = 0;
+  let currentPrizePool = 0;
+  let packageDistribution = [];
+
+  if (currentDraw) {
+    currentWeekTicketsSold = await Ticket.countDocuments({ drawId: currentDraw._id });
+    currentWeekRevenue = currentDraw.totalRevenue || 0;
+    currentPrizePool = Math.floor(currentWeekRevenue * env.PRIZE_POOL_PERCENT);
+
+    packageDistribution = await Payment.aggregate([
+      { $match: { drawId: currentDraw._id, status: 'success', type: 'ticket' } },
+      { $group: { _id: '$quantity', count: { $sum: 1 } } },
+      { $project: { package: '$_id', count: 1, _id: 0 } },
+      { $sort: { package: 1 } },
+    ]);
+  }
+
+  const lastDrawWinners = lastCompletedDraw ? lastCompletedDraw.winnerCount : 0;
+  const lastDrawPayout = lastCompletedDraw ? lastCompletedDraw.totalPayout : 0;
 
   return {
     totalUsers,
-    totalRevenue,
-    ticketsSold,
-    totalPrizePoolFromDraws,
-    winnersCount,
-    completedDraws: drawsCompleted,
+    currentWeekTicketsSold,
+    currentWeekRevenue,
+    currentPrizePool,
+    lastDrawWinners,
+    lastDrawPayout,
+    packageDistribution,
   };
 }
 
