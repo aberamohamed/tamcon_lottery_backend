@@ -2,12 +2,23 @@
   "info": {
     "_postman_id": "a1b2c3d4-tamcon-lottery-api",
     "name": "Tamcon Lottery API",
-    "description": "Weekly lottery backend — OTP auth, JWT (Bearer or httpOnly cookies), Chapa payments, admin draw.\n\n**Postman:** set `useHttpOnlyCookies: false` on **Verify OTP** so tokens return in JSON; the test script saves `accessToken` and `refreshToken`.\n\n**Variables:** `host` (root, e.g. `http://localhost:4000`) for `/health`; `baseUrl` for API routes (e.g. `http://localhost:4000/api/v1`). Update both when changing environment.\n\n**Webhook:** requires `x-chapa-signature` HMAC-SHA256 of the raw body; easiest to test from Chapa dashboard or a signing script.",
+    "description": "# Tamcon Weekly Lottery API\n\nBase URL: `{{baseUrl}}` · Health: `{{host}}/health`\n\n## Quick test flow\n\n1. **Create account** (new users) or ensure email exists in MongoDB `users`\n2. **Request OTP** → copy 6-digit code from server terminal `[OTP] email → code`\n3. **Verify OTP** → saves `accessToken` + `refreshToken` (check Postman Console)\n4. **Me** → confirm `role` is `admin` or `customer`\n5. **Admin KPIs** → requires `role: admin` (use `npm run promote-admin -- email`)\n6. **Create checkout** → open `checkoutUrl` in browser to pay (Chapa test mode)\n\n## Variables\n\n| Variable | Purpose |\n|----------|----------|\n| `email` | Login / register email |\n| `accessToken` | Set automatically by **Verify OTP** |\n| `drawId` | Set by **List draws** (admin) |\n| `chapaTxRef` | Set by **Create checkout** |\n\n## Auth\n\nCollection uses **Bearer** `{{accessToken}}`. Public routes override with **No Auth**.\n\n## Chapa\n\n- Webhook secret optional in dev; payments work via **callback** after checkout.\n- Docs: https://developer.chapa.co/dashboard/quick-start",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
   },
   "variable": [
     { "key": "host", "value": "http://localhost:4000" },
     { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
+    { "key": "email", "value": "abera.mohammed29@gmail.com" },
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "drawId", "value": "" },
@@ -20,9 +31,11 @@
         {
           "name": "Health",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
-            "url": "{{host}}/health"
+            "url": "{{host}}/health",
+            "description": "No authentication required."
           },
           "response": []
         }
@@ -30,75 +43,95 @@
     },
     {
       "name": "Auth",
+      "description": "OTP login only. Email must exist in `users` (register first or insert in Atlas).",
       "item": [
         {
-          "name": "Create account",
+          "name": "1. Create account (register)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"fullName\": \"New User\"\n}"
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"fullName\": \"Test User\"\n}"
             },
             "url": "{{baseUrl}}/auth/register",
-            "description": "Creates a customer account. Then use Request OTP and Verify OTP to sign in."
+            "description": "Creates `role: customer`. Returns 409 if email already exists."
           },
           "response": []
         },
         {
-          "name": "Request OTP",
+          "name": "2. Request OTP",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"you@example.com\"\n}"
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
             },
-            "url": "{{baseUrl}}/auth/otp/request"
+            "url": "{{baseUrl}}/auth/otp/request",
+            "description": "OTP is printed in the API server terminal. Response includes `role` and `fullName` if user exists."
           },
           "response": []
         },
         {
-          "name": "Verify OTP",
+          "name": "3. Verify OTP",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status is 200', () => pm.response.code === 200);",
                   "try {",
                   "  const json = pm.response.json();",
                   "  const d = json && json.data;",
+                  "  pm.test('Has accessToken', () => Boolean(d && d.accessToken));",
                   "  if (d && d.accessToken) {",
                   "    pm.collectionVariables.set('accessToken', d.accessToken);",
-                  "    console.log('Saved accessToken for Bearer auth');",
-                  "  } else {",
-                  "    console.warn('No accessToken in response — check Verify OTP body');",
+                  "    console.log('Saved accessToken — use Admin routes next');",
                   "  }",
                   "  if (d && d.refreshToken) {",
                   "    pm.collectionVariables.set('refreshToken', d.refreshToken);",
                   "  }",
-                  "} catch (e) {}",
-                  ""
+                  "  if (d && d.user) {",
+                  "    console.log('Logged in as', d.user.email, 'role:', d.user.role);",
+                  "  }",
+                  "} catch (e) {",
+                  "  console.error(e);",
+                  "}"
                 ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"you@example.com\",\n  \"otp\": \"000000\",\n  \"useHttpOnlyCookies\": false\n}"
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"000000\",\n  \"useHttpOnlyCookies\": false\n}"
             },
             "url": "{{baseUrl}}/auth/otp/verify",
-            "description": "Use `useHttpOnlyCookies: false` in Postman so tokens are returned in JSON."
+            "description": "Replace `otp` with the code from the server terminal. Always returns `accessToken` in JSON for Postman."
+          },
+          "response": []
+        },
+        {
+          "name": "4. Me (check token)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/auth/me",
+            "description": "Uses collection Bearer `{{accessToken}}`. Run after **Verify OTP**."
           },
           "response": []
         },
         {
           "name": "Refresh session",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
@@ -106,30 +139,13 @@
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": "{{baseUrl}}/auth/refresh",
-            "description": "With cookie-only auth, send `{}`."
-          },
-          "response": []
-        },
-        {
-          "name": "Me",
-          "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
-            "method": "GET",
-            "header": [],
-            "url": "{{baseUrl}}/auth/me"
+            "description": "Returns new tokens in JSON body."
           },
           "response": []
         },
         {
           "name": "Logout",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "POST",
             "header": [],
             "url": "{{baseUrl}}/auth/logout"
@@ -144,55 +160,66 @@
         {
           "name": "Current draw",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/lottery/current"
+            "url": "{{baseUrl}}/lottery/current",
+            "description": "Public. Returns active weekly draw and ticket price."
           },
           "response": []
         },
         {
           "name": "My tickets",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/lottery/tickets/mine?page=1&limit=20"
+            "url": "{{baseUrl}}/lottery/tickets/mine?page=1&limit=20",
+            "description": "Requires login (Bearer token)."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Payments",
+      "name": "Payments (Chapa)",
+      "description": "Test mode keys in `.env`. After checkout, open `checkoutUrl` in a browser.",
       "item": [
         {
-          "name": "Create checkout (Chapa)",
+          "name": "Chapa config (public key)",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/payments/chapa/config",
+            "description": "Returns Chapa public key and test/live mode."
+          },
+          "response": []
+        },
+        {
+          "name": "Create checkout",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
+                  "pm.test('Status is 201', () => pm.response.code === 201);",
                   "try {",
                   "  const json = pm.response.json();",
                   "  const d = json && json.data;",
                   "  if (d && d.txRef) {",
                   "    pm.collectionVariables.set('chapaTxRef', d.txRef);",
+                  "    console.log('txRef:', d.txRef);",
                   "  }",
-                  "} catch (e) {}",
-                  ""
+                  "  if (d && d.checkoutUrl) {",
+                  "    console.log('Open checkoutUrl in browser:', d.checkoutUrl);",
+                  "  }",
+                  "} catch (e) {}"
                 ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
@@ -200,17 +227,18 @@
               "raw": "{\n  \"quantity\": 1\n}"
             },
             "url": "{{baseUrl}}/payments/checkout",
-            "description": "Test script saves `chapaTxRef` from `data.txRef` when present."
+            "description": "10 ETB per ticket. Response: `checkoutUrl`, `txRef`."
           },
           "response": []
         },
         {
-          "name": "Chapa return callback",
+          "name": "Chapa callback (browser return)",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/payments/chapa/callback?tx_ref={{chapaTxRef}}",
-            "description": "Set `chapaTxRef` to the `tx_ref` returned from checkout (or from Chapa redirect)."
+            "url": "{{baseUrl}}/payments/chapa/callback?trx_ref={{chapaTxRef}}",
+            "description": "Simulates Chapa redirect after payment. Uses `trx_ref` or `tx_ref` query param."
           },
           "response": []
         }
@@ -218,27 +246,41 @@
     },
     {
       "name": "Admin",
+      "description": "Requires `role: admin` on the logged-in user. Promote: `npm run promote-admin -- your@email.com`",
       "item": [
         {
           "name": "KPIs",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/admin/kpis"
+            "url": "{{baseUrl}}/admin/kpis",
+            "description": "totalUsers, totalRevenue, ticketsSold, totalPrizePoolFromDraws, winnersCount, completedDraws"
+          },
+          "response": []
+        },
+        {
+          "name": "List all users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/admin/users?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "users"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "role", "value": "admin", "disabled": true, "description": "customer | admin" },
+                { "key": "search", "value": "", "disabled": true, "description": "Filter by email or fullName" }
+              ]
+            },
+            "description": "Paginated list of all users. Optional `role` and `search` query params."
           },
           "response": []
         },
         {
           "name": "Chart — revenue by week",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/admin/charts/revenue-weeks"
@@ -248,13 +290,18 @@
         {
           "name": "Wallet transactions",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/admin/transactions?page=1&limit=50"
+            "url": {
+              "raw": "{{baseUrl}}/admin/transactions?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "transactions"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "type", "value": "win_reward", "disabled": true, "description": "win_reward | ticket_purchase | adjustment" }
+              ]
+            }
           },
           "response": []
         },
@@ -270,32 +317,33 @@
                   "  const first = json && json.data && json.data.items && json.data.items[0];",
                   "  if (first && first._id) {",
                   "    pm.collectionVariables.set('drawId', first._id);",
+                  "    console.log('drawId set to', first._id);",
                   "  }",
-                  "} catch (e) {}",
-                  ""
+                  "} catch (e) {}"
                 ],
                 "type": "text/javascript"
               }
             }
           ],
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "GET",
             "header": [],
-            "url": "{{baseUrl}}/admin/draws?page=1&limit=50"
+            "url": {
+              "raw": "{{baseUrl}}/admin/draws?page=1&limit=50&status=open",
+              "host": ["{{baseUrl}}"],
+              "path": ["admin", "draws"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "50" },
+                { "key": "status", "value": "open", "disabled": true, "description": "open | completed" }
+              ]
+            }
           },
           "response": []
         },
         {
           "name": "Draw history",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/admin/draws/history?page=1&limit=20"
@@ -305,10 +353,6 @@
         {
           "name": "Trigger weekly draw",
           "request": {
-            "auth": {
-              "type": "bearer",
-              "bearer": [{ "key": "token", "value": "{{accessToken}}", "type": "string" }]
-            },
             "method": "POST",
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
@@ -316,24 +360,27 @@
               "raw": "{\n  \"drawId\": \"{{drawId}}\"\n}"
             },
             "url": "{{baseUrl}}/admin/draws/trigger",
-            "description": "Run **List draws** first to populate `drawId` via the test script."
+            "description": "Run **List draws** first to set `drawId`. Closes draw and credits winners."
           },
           "response": []
         }
       ]
     },
     {
-      "name": "Chapa Webhook (manual)",
+      "name": "Chapa Webhook (optional)",
+      "description": "Requires `CHAPA_WEBHOOK_SECRET` in `.env`. Optional in development.",
       "item": [
         {
           "name": "Webhook — charge.success",
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
             "header": [
               { "key": "Content-Type", "value": "application/json" },
               {
                 "key": "x-chapa-signature",
-                "value": "<HMAC-SHA256 hex of raw body using CHAPA_WEBHOOK_SECRET>"
+                "value": "<HMAC-SHA256 hex of raw body using CHAPA_WEBHOOK_SECRET>",
+                "description": "Must match secret from Chapa Dashboard → Webhooks"
               }
             ],
             "body": {

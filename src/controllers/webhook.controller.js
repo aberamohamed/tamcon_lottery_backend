@@ -15,6 +15,10 @@ function isChargeSuccess(event) {
   return ev === 'charge.success' || status === 'success';
 }
 
+/**
+ * Secure webhook handler for Chapa events.
+ * Validates the HMAC signature and fulfills payments if successful.
+ */
 export const chapaWebhook = asyncHandler(async (req, res) => {
   const raw =
     req.body instanceof Buffer ? req.body.toString('utf8') : typeof req.body === 'string' ? req.body : '';

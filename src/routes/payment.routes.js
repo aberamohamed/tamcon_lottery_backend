@@ -16,5 +16,8 @@ router.post(
 );
 
 router.get('/chapa/callback', paymentController.chapaCallback);
+router.post('/chapa/callback', paymentController.chapaCallback);
+router.post('/chapa/webhook', paymentController.chapaWebhook);
+router.get('/verify/:txRef', paymentController.verifyPayment);
 
 export default router;

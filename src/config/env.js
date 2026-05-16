@@ -68,7 +68,8 @@ const envSchema = z
   /** From Dashboard → Settings → Webhooks (not the encryption key). Optional in development. */
   CHAPA_WEBHOOK_SECRET: z.string().optional().default(''),
   CHAPA_CALLBACK_URL: z.string().url(),
-
+  
+  BACKEND_URL: z.string().url().default('http://localhost:4000'),
   FRONTEND_URL: z.string().url().default('http://localhost:3000'),
 
   TICKET_PRICE_ETB: z.coerce.number().positive().default(10),

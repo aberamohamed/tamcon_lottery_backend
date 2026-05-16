@@ -10,7 +10,14 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Update login fields by email (avoids save() failures on legacy/manual Atlas _id shapes). */
+/**
+ * Updates login fields for a user based on their normalized email.
+ * This sets the last login time and verifies the email.
+ * 
+ * @param {string} normalizedEmail - The user's normalized email address.
+ * @returns {Promise<Object>} The updated user document.
+ * @throws {ApiError} If the account is not found or the role is not allowed to sign in.
+ */
 async function completeLoginForUser(normalizedEmail) {
   const email = normalizeEmail(normalizedEmail);
 
@@ -35,6 +42,13 @@ async function completeLoginForUser(normalizedEmail) {
   return updated;
 }
 
+/**
+ * Verifies a provided OTP for an email and issues access/refresh tokens.
+ * 
+ * @param {string} email - The user's email address.
+ * @param {string} otp - The one-time password provided by the user.
+ * @returns {Promise<Object>} An object containing the user data and the signed tokens.
+ */
 export async function verifyOtpAndIssueTokens(email, otp) {
   const normalizedEmail = await verifyOtpOrThrow(email, otp);
   await findUserByEmailOrThrow(normalizedEmail);
@@ -51,6 +65,13 @@ export async function verifyOtpAndIssueTokens(email, otp) {
   };
 }
 
+/**
+ * Refreshes the user's session using a valid refresh token.
+ * 
+ * @param {string} refreshToken - The refresh token to verify.
+ * @returns {Promise<Object>} An object containing the user data and the new signed tokens.
+ * @throws {ApiError} If the token is invalid, expired, or the token version does not match.
+ */
 export async function refreshSession(refreshToken) {
   let decoded;
   try {
@@ -79,6 +100,12 @@ export async function refreshSession(refreshToken) {
   };
 }
 
+/**
+ * Logs out a user by invalidating their current refresh tokens.
+ * 
+ * @param {string} userId - The ID of the user to log out.
+ * @returns {Promise<void>}
+ */
 export async function logoutUser(userId) {
   await User.findByIdAndUpdate(userId, { $inc: { refreshTokenVersion: 1 } });
 }

@@ -11,6 +11,20 @@ import { ApiError } from '../utils/ApiError.js';
 import { generateWinningNumber } from '../utils/cryptoRandom.js';
 import { recalculateDrawRevenue } from './lottery.service.js';
 
+/**
+ * Executes a weekly lottery draw.
+ * This function calculates the prize pool, generates a winning number,
+ * identifies winners, updates ticket statuses, distributes the prize pool
+ * to the winners' wallets, and finalizes the draw status.
+ * All operations are performed within a database transaction.
+ * 
+ * @param {Object} params - The draw execution parameters.
+ * @param {mongoose.Types.ObjectId} params.drawId - The ID of the draw to execute.
+ * @param {Object} params.admin - The admin user triggering the draw.
+ * @param {string} params.ip - The IP address of the admin.
+ * @returns {Promise<Object>} A summary of the executed draw including total revenue, prize pool, and total payout.
+ * @throws {ApiError} If the draw is not found, already completed, or not open.
+ */
 export async function executeWeeklyDraw({ drawId, admin, ip }) {
   const session = await mongoose.startSession();
   try {

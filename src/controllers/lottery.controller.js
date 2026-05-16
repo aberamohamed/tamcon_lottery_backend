@@ -3,6 +3,9 @@ import { Ticket } from '../models/Ticket.js';
 import { getActiveDrawForNow } from '../services/lottery.service.js';
 import { env } from '../config/env.js';
 
+/**
+ * Retrieves the current active lottery draw information.
+ */
 export const currentDraw = asyncHandler(async (req, res) => {
   const draw = await getActiveDrawForNow();
   res.json({
@@ -15,6 +18,9 @@ export const currentDraw = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Retrieves a paginated list of tickets belonging to the current user.
+ */
 export const myTickets = asyncHandler(async (req, res) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));

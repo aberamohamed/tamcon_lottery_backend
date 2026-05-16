@@ -7,5 +7,5 @@ export const chapaConfig = {
   baseUrl: env.CHAPA_BASE_URL.replace(/\/$/, ''),
   webhookSecret: env.CHAPA_WEBHOOK_SECRET?.trim() || '',
   callbackUrl: env.CHAPA_CALLBACK_URL,
-  returnUrl: env.FRONTEND_URL,
+  returnUrl: env.CHAPA_CALLBACK_URL,
 };
