@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import { User } from '../models/User.js';
 import { ApiError } from '../utils/ApiError.js';
 import { normalizeEmail } from '../utils/email.js';
@@ -8,7 +9,32 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/** Finds user by normalized email; falls back to case-insensitive match for legacy Atlas rows. */
+/**
+ * Load user for JWT auth — supports ObjectId and string `_id`
+ * (needed due to some manual Atlas imports).
+ * 
+ * @param {string} id - The user ID.
+ * @returns {Promise<Object|null>} The user document with refreshTokenVersion, or null.
+ */
+export async function findUserByIdForAuth(id) {
+  if (id == null || id === '') return null;
+  const idStr = String(id);
+
+  if (mongoose.Types.ObjectId.isValid(idStr)) {
+    const byObjectId = await User.findById(idStr).select('+refreshTokenVersion');
+    if (byObjectId) return byObjectId;
+  }
+
+  return User.findOne({ _id: idStr }).select('+refreshTokenVersion');
+}
+
+/**
+ * Finds a user by normalized email.
+ * Falls back to case-insensitive match for legacy Atlas rows.
+ * 
+ * @param {string} email - The email to search for.
+ * @returns {Promise<Object|null>} The user document or null.
+ */
 export async function findUserByEmail(email) {
   const normalized = normalizeEmail(email);
 
@@ -25,6 +51,13 @@ export async function findUserByEmail(email) {
   return user;
 }
 
+/**
+ * Finds a user by email and ensures they exist and have a valid role for login.
+ * 
+ * @param {string} email - The email to search for.
+ * @returns {Promise<Object>} The found user document.
+ * @throws {ApiError} If the user is not found or has an unauthorized role.
+ */
 export async function findUserByEmailOrThrow(email) {
   const user = await findUserByEmail(email);
   if (!user) {
@@ -41,7 +74,16 @@ export async function assertRegisteredUserForLogin(email) {
   return findUserByEmailOrThrow(email);
 }
 
-/** Public sign-up: creates a customer account (admins are promoted separately). */
+/**
+ * Public sign-up: creates a new customer account.
+ * Admins are promoted separately.
+ * 
+ * @param {Object} params - The account creation parameters.
+ * @param {string} params.email - The user's email address.
+ * @param {string} params.fullName - The user's full name.
+ * @returns {Promise<Object>} The newly created user document.
+ * @throws {ApiError} If an account with the email already exists.
+ */
 export async function createAccount({ email, fullName }) {
   const normalized = normalizeEmail(email);
   const existing = await findUserByEmail(normalized);

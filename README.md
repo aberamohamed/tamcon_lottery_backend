@@ -39,6 +39,7 @@ npm run promote-admin -- you@example.com
 | Payments | GET | `/payments/chapa/callback` | Browser return URL configured in Chapa |
 | Webhook | POST | `/api/v1/payments/chapa/webhook` | Raw JSON + signature verification |
 | Admin | GET | `/admin/kpis` | `totalUsers`, `totalRevenue`, `ticketsSold`, `totalPrizePoolFromDraws`, `winnersCount`, `completedDraws` |
+| Admin | GET | `/admin/users` | Paginated users (`?page`, `limit`, optional `role`, `search`) |
 | Admin | GET | `/admin/charts/revenue-weeks` | Completed draws for charts |
 | Admin | GET | `/admin/transactions` | Wallet ledger |
 | Admin | GET | `/admin/draws` | Filterable draw list |

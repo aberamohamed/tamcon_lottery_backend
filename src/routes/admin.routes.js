@@ -8,6 +8,7 @@ import {
   transactionsQuerySchema,
   triggerDrawSchema,
   adminDrawsQuerySchema,
+  usersQuerySchema,
 } from '../validators/admin.validator.js';
 
 const router = Router();
@@ -15,6 +16,7 @@ const router = Router();
 router.use(authMiddleware, roleMiddleware('admin'));
 
 router.get('/kpis', adminController.kpis);
+router.get('/users', validateQuery(usersQuerySchema), adminController.users);
 router.get('/charts/revenue-weeks', adminController.revenueChart);
 router.get('/transactions', validateQuery(transactionsQuerySchema), adminController.transactions);
 router.get('/draws/history', validateQuery(drawHistoryQuerySchema), adminController.drawHistory);

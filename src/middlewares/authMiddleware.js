@@ -1,6 +1,6 @@
 import { verifyAccessToken } from '../utils/jwt.js';
 import { ApiError } from '../utils/ApiError.js';
-import { User } from '../models/User.js';
+import { findUserByIdForAuth } from '../services/user.service.js';
 
 export async function authMiddleware(req, res, next) {
   try {
@@ -12,12 +12,17 @@ export async function authMiddleware(req, res, next) {
       throw new ApiError(401, 'Authentication required');
     }
     const decoded = verifyAccessToken(token);
-    const user = await User.findById(decoded.sub).select('+refreshTokenVersion');
+    const user = await findUserByIdForAuth(decoded.sub);
     if (!user) {
-      throw new ApiError(401, 'User not found');
+      throw new ApiError(
+        401,
+        'Session invalid — sign in again (Verify OTP) and use the new accessToken in Authorization.',
+      );
     }
-    if (user.refreshTokenVersion !== decoded.rtv) {
-      throw new ApiError(401, 'Session invalidated');
+    const tokenRtv = Number(decoded.rtv ?? 0);
+    const userRtv = Number(user.refreshTokenVersion ?? 0);
+    if (tokenRtv !== userRtv) {
+      throw new ApiError(401, 'Session invalidated — verify OTP again');
     }
     req.user = user;
     next();

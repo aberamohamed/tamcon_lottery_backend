@@ -19,7 +19,7 @@ export const verifyOtpSchema = z.object({
     .union([z.string(), z.number()])
     .transform((v) => String(v).trim().padStart(6, '0'))
     .refine((v) => /^\d{6}$/.test(v), { message: 'OTP must be 6 digits' }),
-  useHttpOnlyCookies: z.boolean().optional().default(true),
+  useHttpOnlyCookies: z.boolean().optional().default(false),
 });
 
 export const refreshBodySchema = z
