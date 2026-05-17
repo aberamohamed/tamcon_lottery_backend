@@ -4,29 +4,18 @@ import { Ticket } from '../models/Ticket.js';
 import { User } from '../models/User.js';
 import { WalletTransaction } from '../models/WalletTransaction.js';
 import { DrawWinner } from '../models/DrawWinner.js';
-import { Notification } from '../models/Notification.js';
 import { AdminLog } from '../models/AdminLog.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import { generateWinningNumber } from '../utils/cryptoRandom.js';
 import { recalculateDrawRevenue } from './lottery.service.js';
+import { sendWinnerEmail } from './email.service.js';
 
-/**
- * Executes a weekly lottery draw.
- * This function calculates the prize pool, generates a winning number,
- * identifies winners, updates ticket statuses, distributes the prize pool
- * to the winners' wallets, and finalizes the draw status.
- * All operations are performed within a database transaction.
- * 
- * @param {Object} params - The draw execution parameters.
- * @param {mongoose.Types.ObjectId} params.drawId - The ID of the draw to execute.
- * @param {Object} params.admin - The admin user triggering the draw.
- * @param {string} params.ip - The IP address of the admin.
- * @returns {Promise<Object>} A summary of the executed draw including total revenue, prize pool, and total payout.
- * @throws {ApiError} If the draw is not found, already completed, or not open.
- */
+// Run the weekly draw: calculate the prize pool, generate a winning number, credit the winners, and close the draw.
+// All of this runs inside a database transaction so that we never get partial payouts if the server crashes.
 export async function executeWeeklyDraw({ drawId, admin, ip }) {
   const session = await mongoose.startSession();
+  const emailsToSend = [];
   try {
     let summary;
     await session.withTransaction(async () => {
@@ -107,18 +96,7 @@ export async function executeWeeklyDraw({ drawId, admin, ip }) {
             { session },
           );
 
-          await Notification.create(
-            [
-              {
-                userId: w.userId,
-                title: 'Congratulations!',
-                message: `You won ${share.toLocaleString('en-US')} ETB in this week's draw.`,
-                type: 'win',
-                isRead: false,
-              },
-            ],
-            { session },
-          );
+          emailsToSend.push({ email: user.email, amount: share });
         }
       }
 
@@ -160,6 +138,14 @@ export async function executeWeeklyDraw({ drawId, admin, ip }) {
         totalPayout,
       };
     });
+
+    // Send emails outside the transaction to prevent locking
+    for (const { email, amount } of emailsToSend) {
+      sendWinnerEmail(email, amount).catch(err => {
+        console.error(`Failed to send winner email to ${email}:`, err);
+      });
+    }
+
     return summary;
   } finally {
     await session.endSession();

@@ -6,12 +6,7 @@ import { WalletTransaction } from '../models/WalletTransaction.js';
 import { DrawWinner } from '../models/DrawWinner.js';
 import { env } from '../config/env.js';
 
-/**
- * Retrieves key performance indicators for the admin dashboard.
- * Focuses on real-time metrics for the current week and last completed draw.
- * 
- * @returns {Promise<Object>} An object containing the KPI metrics.
- */
+// Collect KPI metrics for the admin overview, like user count, open draw sales, and last draw payouts.
 export async function getDashboardKpis() {
   const [totalUsers, currentDraw, lastCompletedDraw] = await Promise.all([
     User.countDocuments(),
@@ -51,12 +46,7 @@ export async function getDashboardKpis() {
   };
 }
 
-/**
- * Generates data for the revenue-by-week chart on the admin dashboard.
- * 
- * @param {number} [limit=12] - The maximum number of past weeks to retrieve.
- * @returns {Promise<Array>} An array of aggregated draw data sorted chronologically.
- */
+// Generate weekly revenue metrics sorted chronologically for the admin dashboard chart.
 export async function revenueByWeekChart(limit = 12) {
   return LotteryDraw.aggregate([
     { $match: { status: 'completed' } },
@@ -77,15 +67,7 @@ export async function revenueByWeekChart(limit = 12) {
   ]);
 }
 
-/**
- * Lists paginated wallet transactions, optionally filtered by type.
- * 
- * @param {Object} params - The pagination and filtering parameters.
- * @param {number} params.page - The current page number.
- * @param {number} params.limit - The number of items per page.
- * @param {string} [params.type] - The type of transaction to filter by.
- * @returns {Promise<Object>} A paginated list of wallet transactions.
- */
+// Get wallet transactions (deposits/rewards/etc.) with pagination and filtering.
 export async function listWalletTransactions({ page, limit, type }) {
   const filter = type ? { type } : {};
   const skip = (page - 1) * limit;
@@ -101,14 +83,7 @@ export async function listWalletTransactions({ page, limit, type }) {
   return { items, total, page, limit };
 }
 
-/**
- * Lists the paginated history of completed lottery draws.
- * 
- * @param {Object} params - The pagination parameters.
- * @param {number} params.page - The current page number.
- * @param {number} params.limit - The number of items per page.
- * @returns {Promise<Object>} A paginated list of completed draws.
- */
+// Get history of all past completed draws.
 export async function listDrawHistory({ page, limit }) {
   const skip = (page - 1) * limit;
   const [items, total] = await Promise.all([
@@ -122,16 +97,7 @@ export async function listDrawHistory({ page, limit }) {
   return { items, total, page, limit };
 }
 
-/**
- * Lists paginated users, optionally filtered by role or search term.
- * 
- * @param {Object} params - The pagination and filtering parameters.
- * @param {number} params.page - The current page number.
- * @param {number} params.limit - The number of items per page.
- * @param {string} [params.role] - The user role to filter by.
- * @param {string} [params.search] - A search term matching email or full name.
- * @returns {Promise<Object>} A paginated list of users.
- */
+// Get registered accounts with options to search by name/email or filter by roles.
 export async function listUsers({ page, limit, role, search }) {
   const filter = {};
   if (role) filter.role = role;
@@ -154,15 +120,7 @@ export async function listUsers({ page, limit, role, search }) {
   return { items, total, page, limit };
 }
 
-/**
- * Lists paginated draws for the admin interface, optionally filtered by status.
- * 
- * @param {Object} params - The pagination and filtering parameters.
- * @param {number} params.page - The current page number.
- * @param {number} params.limit - The number of items per page.
- * @param {string} [params.status] - The status to filter by.
- * @returns {Promise<Object>} A paginated list of lottery draws.
- */
+// Get open/completed draws for the administration board.
 export async function listDrawsAdmin({ page, limit, status }) {
   const filter = status ? { status } : {};
   const skip = (page - 1) * limit;

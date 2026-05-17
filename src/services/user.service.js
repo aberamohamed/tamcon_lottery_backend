@@ -9,13 +9,7 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Load user for JWT auth — supports ObjectId and string `_id`
- * (needed due to some manual Atlas imports).
- * 
- * @param {string} id - The user ID.
- * @returns {Promise<Object|null>} The user document with refreshTokenVersion, or null.
- */
+// Fetch a user for JWT authentication. Supports both standard ObjectId and string _id values.
 export async function findUserByIdForAuth(id) {
   if (id == null || id === '') return null;
   const idStr = String(id);
@@ -28,13 +22,7 @@ export async function findUserByIdForAuth(id) {
   return User.findOne({ _id: idStr }).select('+refreshTokenVersion');
 }
 
-/**
- * Finds a user by normalized email.
- * Falls back to case-insensitive match for legacy Atlas rows.
- * 
- * @param {string} email - The email to search for.
- * @returns {Promise<Object|null>} The user document or null.
- */
+// Look up a user by their email address. Includes a case-insensitive regex fallback just in case.
 export async function findUserByEmail(email) {
   const normalized = normalizeEmail(email);
 
@@ -51,13 +39,7 @@ export async function findUserByEmail(email) {
   return user;
 }
 
-/**
- * Finds a user by email and ensures they exist and have a valid role for login.
- * 
- * @param {string} email - The email to search for.
- * @returns {Promise<Object>} The found user document.
- * @throws {ApiError} If the user is not found or has an unauthorized role.
- */
+// Look up a user by email and verify they have a permission level that's allowed to log in.
 export async function findUserByEmailOrThrow(email) {
   const user = await findUserByEmail(email);
   if (!user) {
@@ -74,16 +56,7 @@ export async function assertRegisteredUserForLogin(email) {
   return findUserByEmailOrThrow(email);
 }
 
-/**
- * Public sign-up: creates a new customer account.
- * Admins are promoted separately.
- * 
- * @param {Object} params - The account creation parameters.
- * @param {string} params.email - The user's email address.
- * @param {string} params.fullName - The user's full name.
- * @returns {Promise<Object>} The newly created user document.
- * @throws {ApiError} If an account with the email already exists.
- */
+// Create a standard customer account (admin upgrades are done manually or via script).
 export async function createAccount({ email, fullName }) {
   const normalized = normalizeEmail(email);
   const existing = await findUserByEmail(normalized);

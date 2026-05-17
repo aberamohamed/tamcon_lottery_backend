@@ -3,9 +3,7 @@ import * as paymentService from '../services/payment.service.js';
 import { env } from '../config/env.js';
 import { chapaConfig } from '../config/chapa.js';
 
-/**
- * Exposes the public Chapa configuration to the frontend client.
- */
+// Expose our public Chapa configurations (like API keys) to the client app.
 export const chapaConfigPublic = asyncHandler(async (_req, res) => {
   res.json({
     success: true,
@@ -16,18 +14,14 @@ export const chapaConfigPublic = asyncHandler(async (_req, res) => {
   });
 });
 
-/**
- * Initializes a new checkout session for purchasing tickets.
- */
+// Set up a checkout session to buy a lottery ticket.
 export const createCheckout = asyncHandler(async (req, res) => {
   const { quantity } = req.body;
   const session = await paymentService.createCheckoutSession({ user: req.user, quantity });
   res.status(201).json({ success: true, data: session });
 });
 
-/**
- * Handles the redirect callback from Chapa after a payment attempt.
- */
+// Handles redirect callbacks from Chapa. Validates transaction and updates database.
 export const chapaCallback = asyncHandler(async (req, res) => {
   console.log('--- [Chapa Callback DEBUG] START ---');
   console.log('Method:', req.method);
@@ -59,9 +53,7 @@ export const chapaCallback = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * API endpoint to manually verify a payment status.
- */
+// Manually verify a payment reference from the frontend.
 export const verifyPayment = asyncHandler(async (req, res) => {
   const txRef = req.params.txRef || req.query.tx_ref || req.query.trx_ref;
   if (!txRef) {
@@ -84,9 +76,7 @@ export const verifyPayment = asyncHandler(async (req, res) => {
   }
 });
 
-/**
- * Webhook handler for asynchronous payment events from Chapa.
- */
+// Handle Chapa webhook alerts when transactions succeed asynchronously.
 export const chapaWebhook = asyncHandler(async (req, res) => {
   // Chapa sends webhook as POST with a signature header
   // Note: For 'real payment process', you should verify the signature here

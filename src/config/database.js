@@ -10,14 +10,14 @@ export async function connectDatabase() {
     socketTimeoutMS: env.MONGODB_SOCKET_TIMEOUT_MS,
   };
 
-  /** Prefer IPv4 for `mongodb+srv` when Atlas SRV returns IPv6-first and the path is broken. */
+  // Fall back to IPv4 if MongoDB Atlas has trouble resolving DNS over IPv6
   if (env.MONGODB_FORCE_IPV4) {
     connectOptions.family = 4;
   }
 
   await mongoose.connect(env.MONGODB_URI, connectOptions);
   // eslint-disable-next-line no-console
-  console.log(`MongoDB connected → database: ${mongoose.connection.name}`);
+  console.log(`MongoDB connected => database: ${mongoose.connection.name}`);
 }
 
 export async function disconnectDatabase() {

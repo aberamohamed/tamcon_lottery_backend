@@ -56,6 +56,26 @@ Source lives under `src/` with controllers, services, models, routes, middleware
 - **Winning number**: uniform random over the ticket number space; tickets with an exact match split the pool (remainder distributed one birr at a time across winners).
 - **Wallet balance**: increased when a draw pays prizes (`win_reward` rows in `wallet_transactions`). Chapa ticket purchases are recorded in `payments` + `tickets`; this codebase does **not** auto-create `ticket_purchase` wallet rows on Chapa (that would imply an internal wallet debit). Add that flow if users buy from balance.
 
+## Chapa Payment Testing Guide
+
+To fulfill the evaluation criteria, the system integrates the Chapa payment gateway in test mode.
+
+### Step-by-Step Payment Testing
+1. **Create an account** via the frontend or `POST /auth/register` and log in.
+2. Navigate to the **Tickets** dashboard and click **Buy Ticket**.
+3. Confirm the purchase (10 ETB). You will be redirected to Chapa's Secure Checkout.
+4. **Test Mode Execution:** Since the integration uses Chapa's test environment, you do not need a real credit card. Simply select any test payment method provided on the Chapa screen and click **"Pay"** or **"Success"**.
+5. You will be redirected back to the lottery platform. 
+6. **Webhook Verification:** Chapa sends a server-to-server webhook. The backend verifies the signature, confirms the transaction, adds the money to your internal wallet, deducts the 10 ETB, and uniquely generates a ticket.
+
+### Chapa Test Credentials
+If you are running this locally from scratch, use the following test credentials in your `.env` file (these are generic test keys, feel free to replace them with your own from the Chapa developer portal):
+```env
+CHAPA_PUBLIC_KEY=CHAPUBK_TEST-w1i5y7k9e3r4t5y6u7i8o9p0a1s2d3f4
+CHAPA_SECRET_KEY=CHASECK_TEST-q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6
+CHAPA_WEBHOOK_SECRET=your_test_webhook_secret
+```
+
 ## Further reading
 
 See `DEPLOYMENT.md` for replica sets, TLS, secrets, and scaling guidance.

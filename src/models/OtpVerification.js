@@ -9,7 +9,7 @@ const otpSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    /** Never store a plain OTP in production — bcrypt hash only. */
+    // Hash OTP before saving — never store in plain text
     otpHash: { type: String, required: true },
     expiresAt: { type: Date, required: true },
     attempts: { type: Number, default: 0 },

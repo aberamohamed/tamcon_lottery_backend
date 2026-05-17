@@ -10,14 +10,7 @@ function escapeRegex(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-/**
- * Updates login fields for a user based on their normalized email.
- * This sets the last login time and verifies the email.
- * 
- * @param {string} normalizedEmail - The user's normalized email address.
- * @returns {Promise<Object>} The updated user document.
- * @throws {ApiError} If the account is not found or the role is not allowed to sign in.
- */
+// Complete the login sequence by updating the last login timestamp and ensuring the email is marked verified.
 async function completeLoginForUser(normalizedEmail) {
   const email = normalizeEmail(normalizedEmail);
 
@@ -42,13 +35,7 @@ async function completeLoginForUser(normalizedEmail) {
   return updated;
 }
 
-/**
- * Verifies a provided OTP for an email and issues access/refresh tokens.
- * 
- * @param {string} email - The user's email address.
- * @param {string} otp - The one-time password provided by the user.
- * @returns {Promise<Object>} An object containing the user data and the signed tokens.
- */
+// Check the OTP and, if valid, generate fresh access & refresh JWT tokens for the session.
 export async function verifyOtpAndIssueTokens(email, otp) {
   const normalizedEmail = await verifyOtpOrThrow(email, otp);
   await findUserByEmailOrThrow(normalizedEmail);
@@ -65,13 +52,7 @@ export async function verifyOtpAndIssueTokens(email, otp) {
   };
 }
 
-/**
- * Refreshes the user's session using a valid refresh token.
- * 
- * @param {string} refreshToken - The refresh token to verify.
- * @returns {Promise<Object>} An object containing the user data and the new signed tokens.
- * @throws {ApiError} If the token is invalid, expired, or the token version does not match.
- */
+// Use the refresh token to issue a new access token, checking token version validation for security.
 export async function refreshSession(refreshToken) {
   let decoded;
   try {
@@ -100,12 +81,7 @@ export async function refreshSession(refreshToken) {
   };
 }
 
-/**
- * Logs out a user by invalidating their current refresh tokens.
- * 
- * @param {string} userId - The ID of the user to log out.
- * @returns {Promise<void>}
- */
+// Log the user out by incrementing their refresh token version, which revokes all existing sessions instantly.
 export async function logoutUser(userId) {
   await User.findByIdAndUpdate(userId, { $inc: { refreshTokenVersion: 1 } });
 }

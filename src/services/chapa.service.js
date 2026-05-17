@@ -1,15 +1,7 @@
 import { chapaConfig } from '../config/chapa.js';
 import { ApiError } from '../utils/ApiError.js';
 
-/**
- * Internal helper to make HTTP requests to the Chapa API.
- * Automatically adds the Authorization header and handles error parsing.
- * 
- * @param {string} path - The API endpoint path (e.g., '/transaction/initialize').
- * @param {Object} [options={}] - Additional options for the fetch call.
- * @returns {Promise<Object>} The parsed JSON response from the API.
- * @throws {ApiError} If the request fails or returns a non-ok status.
- */
+// Quick internal helper to talk to Chapa. Appends the Authorization headers and extracts JSON.
 async function chapaFetch(path, options = {}) {
   const url = `${chapaConfig.baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetch(url, {
@@ -34,12 +26,7 @@ async function chapaFetch(path, options = {}) {
   return data;
 }
 
-/**
- * Initializes a new payment transaction with Chapa.
- * 
- * @param {Object} payload - The transaction details including amount, email, first_name, last_name, tx_ref, etc.
- * @returns {Promise<Object>} The response from Chapa, typically containing a checkout_url.
- */
+// Tell Chapa to initialize a payment (returns the redirect checkout link).
 export async function initializeTransaction(payload) { //create checkout
   return chapaFetch('/transaction/initialize', {
     method: 'POST',
@@ -47,12 +34,7 @@ export async function initializeTransaction(payload) { //create checkout
   });
 }
 
-/**
- * Verifies the status of an existing Chapa transaction.
- * 
- * @param {string} txRef - The unique transaction reference to verify.
- * @returns {Promise<Object>} The response from Chapa containing the transaction status and details.
- */
+// Verify a payment status with Chapa using the custom transaction ref.
 export async function verifyTransaction(txRef) {
   return chapaFetch(`/transaction/verify/${encodeURIComponent(txRef)}`, {
     method: 'GET',

@@ -4,8 +4,7 @@ const paymentSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     userFullName: { type: String }, // To explicitly record the user's name for history
-    /** Kept for weekly revenue attribution (not in your sample doc, but required for the lottery engine). */
-    /** Optional drawId (required for tickets, but not for deposits) */
+    // Keep drawId so we can attribute weekly revenue correctly (needed for ticket purchases, not for plain deposits)
     drawId: { type: mongoose.Schema.Types.ObjectId, ref: 'LotteryDraw', index: true },
     type: {
       type: String,
@@ -25,7 +24,7 @@ const paymentSchema = new mongoose.Schema(
     },
     paymentMethod: { type: String, default: 'chapa', index: true },
     verifiedAt: { type: Date },
-    /** Chapa / checkout integration fields */
+    // Checkout & integration fields for Chapa
     quantity: { type: Number, required: true, min: 1, max: 500, default: 1 },
     checkoutUrl: { type: String },
     idempotencyKey: { type: String, index: true, sparse: true },
