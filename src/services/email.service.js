@@ -2,36 +2,19 @@ import { getMailTransporter } from '../config/mail.js';
 import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 
-/**
- * Checks if the application has SMTP credentials configured.
- * 
- * @returns {boolean} True if both MAIL_USER and MAIL_PASS are set, false otherwise.
- */
+// Check if we have valid SMTP credentials configured in our env.
 function hasSmtpCredentials() {
   return Boolean(env.MAIL_USER?.trim() && env.MAIL_PASS?.trim());
 }
 
-/**
- * Determines whether the OTP should be logged to the console instead of emailed.
- * This is useful for development environments without an SMTP setup.
- * 
- * @returns {boolean} True if the OTP should be logged to the console.
- */
+// Decide if we should dump the OTP directly to the terminal instead of sending an actual email. Useful for dev mode.
 export function shouldLogOtpToConsole() {
   if (env.MAIL_LOG_OTP_TO_CONSOLE) return true;
   if (env.NODE_ENV === 'development' && !hasSmtpCredentials()) return true;
   return false;
 }
 
-/**
- * Sends an OTP email to the specified address.
- * Falls back to logging the OTP to the console if configured.
- * 
- * @param {string} to - The recipient's email address.
- * @param {string} otp - The one-time password to send.
- * @returns {Promise<void>}
- * @throws {ApiError} If email is not configured and console logging is not enabled.
- */
+// Send the OTP code via email, or log it to the console if we're in dev mode without SMTP.
 export async function sendOtpEmail(to, otp) {
   if (shouldLogOtpToConsole()) {
     // eslint-disable-next-line no-console
@@ -55,5 +38,30 @@ export async function sendOtpEmail(to, otp) {
     subject: `${env.APP_NAME} — your login code`,
     text: `Your one-time code is ${otp}. It expires in ${env.OTP_EXPIRES_MINUTES} minutes.`,
     html: `<p>Your one-time code is <strong>${otp}</strong>.</p><p>It expires in ${env.OTP_EXPIRES_MINUTES} minutes.</p>`,
+  });
+}
+
+// Email the winner congratulating them and letting them know the amount won.
+export async function sendWinnerEmail(to, prizeAmount) {
+  if (shouldLogOtpToConsole()) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `\n[WINNER EMAIL] ${to} → Won ${prizeAmount} ETB\n`,
+    );
+    return;
+  }
+
+  if (!hasSmtpCredentials()) {
+    console.warn(`Winner email to ${to} skipped: Email is not configured.`);
+    return;
+  }
+
+  const transporter = getMailTransporter();
+  await transporter.sendMail({
+    from: env.MAIL_FROM,
+    to,
+    subject: `Congratulations from ${env.APP_NAME}!`,
+    text: `You just won ${prizeAmount.toLocaleString('en-US')} ETB in this week's lottery draw!`,
+    html: `<p>Congratulations!</p><p>You just won <strong>${prizeAmount.toLocaleString('en-US')} ETB</strong> in this week's lottery draw!</p><p>Your wallet has been automatically credited.</p>`,
   });
 }

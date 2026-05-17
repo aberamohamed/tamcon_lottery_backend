@@ -12,9 +12,9 @@ export function getMailTransporter() {
       auth:
         env.MAIL_USER && env.MAIL_PASS
           ? {
-              user: env.MAIL_USER,
-              pass: env.MAIL_PASS,
-            }
+            user: env.MAIL_USER,
+            pass: env.MAIL_PASS,
+          }
           : undefined,
     });
   }

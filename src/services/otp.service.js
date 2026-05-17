@@ -10,12 +10,7 @@ import { normalizeEmail } from '../utils/email.js';
 
 const OTP_SALT_ROUNDS = 10;
 
-/**
- * Creates a new OTP for the given email, deletes any existing ones, and dispatches it via email.
- * 
- * @param {string} email - The user's email address.
- * @returns {Promise<Object>} Metadata about the OTP dispatch (expiry, role, full name).
- */
+// Generate a new 6-digit OTP, wipe any old codes for this email, hash the new one, and email it out.
 export async function createAndDispatchOtp(email) {
   const normalizedEmail = normalizeEmail(email);
   const user = await findUserByEmailOrThrow(normalizedEmail);
@@ -41,14 +36,7 @@ export async function createAndDispatchOtp(email) {
   };
 }
 
-/**
- * Verifies the provided OTP against the stored hash for the given email.
- * 
- * @param {string} email - The user's email address.
- * @param {string|number} plainOtp - The OTP provided by the user.
- * @returns {Promise<string>} The normalized email if verification succeeds.
- * @throws {ApiError} If the OTP is invalid, expired, or not found.
- */
+// Match the user's OTP code against our database hash. Throws if missing, expired, or wrong.
 export async function verifyOtpOrThrow(email, plainOtp) {
   const normalizedEmail = normalizeEmail(email);
   const code = String(plainOtp).trim().padStart(6, '0');
@@ -72,11 +60,7 @@ export async function verifyOtpOrThrow(email, plainOtp) {
   return normalizedEmail;
 }
 
-/**
- * Periodically cleans up expired OTP records from the database.
- * 
- * @returns {Promise<void>}
- */
+// Background job helper to purge expired codes from the DB.
 export async function cleanupExpiredOtps() {
   if (mongoose.connection.readyState !== 1) return;
   await OtpVerification.deleteMany({ expiresAt: { $lt: new Date() } });

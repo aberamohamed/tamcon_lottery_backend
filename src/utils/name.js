@@ -1,4 +1,4 @@
-/** Split display name for Chapa (first / last). */
+// Split a full name into first and last name so Chapa API accepts it.
 export function splitFullName(fullName) {
   if (!fullName || typeof fullName !== 'string') {
     return { firstName: 'Customer', lastName: 'User' };

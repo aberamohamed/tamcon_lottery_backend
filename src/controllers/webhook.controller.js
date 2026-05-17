@@ -15,10 +15,7 @@ function isChargeSuccess(event) {
   return ev === 'charge.success' || status === 'success';
 }
 
-/**
- * Secure webhook handler for Chapa events.
- * Validates the HMAC signature and fulfills payments if successful.
- */
+// Secure webhook handler for Chapa. Checks signature and triggers fulfillment upon success.
 export const chapaWebhook = asyncHandler(async (req, res) => {
   const raw =
     req.body instanceof Buffer ? req.body.toString('utf8') : typeof req.body === 'string' ? req.body : '';
@@ -28,7 +25,7 @@ export const chapaWebhook = asyncHandler(async (req, res) => {
       return res.status(500).send('webhook secret not configured');
     }
     // eslint-disable-next-line no-console
-    console.warn('[Chapa] CHAPA_WEBHOOK_SECRET not set — skipping signature check (development only)');
+    console.warn('Chapa, CHAPA_WEBHOOK_SECRET not set — skipping signature check (development only)');
   } else if (!verifyChapaSignature(raw, req.headers, chapaConfig.webhookSecret)) {
     let parsed;
     try {

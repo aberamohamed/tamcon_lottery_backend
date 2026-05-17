@@ -11,17 +11,7 @@ import { generateTxRef, generateTicketNumber } from '../utils/cryptoRandom.js';
 import { getActiveDrawForNow, recalculateDrawRevenue } from './lottery.service.js';
 import { splitFullName } from '../utils/name.js';
 
-/**
- * Initiates a new checkout session for a ticket purchase using Chapa.
- * Validates the user does not already have a ticket for the current draw,
- * creates a pending Payment record, and gets the checkout URL from Chapa.
- * 
- * @param {Object} params - The checkout parameters.
- * @param {Object} params.user - The user initiating the checkout.
- * @param {number} params.quantity - The number of tickets to purchase.
- * @returns {Promise<Object>} An object containing the checkout URL, transaction reference, payment ID, amount, and draw ID.
- * @throws {ApiError} If the user already has a ticket or the payment session could not be started.
- */
+// Start a Chapa payment session for a ticket. Checks if they already bought a ticket this week, creates a pending Payment record, and hits Chapa to get the checkout page URL.
 export async function createCheckoutSession({ user, quantity }) {
   const draw = await getActiveDrawForNow();
   
@@ -83,15 +73,7 @@ export async function createCheckoutSession({ user, quantity }) {
 
 
 
-/**
- * Generates a unique, non-colliding ticket number for a specific draw.
- * Retries up to 50 times to find a unique number.
- * 
- * @param {mongoose.ClientSession} session - The current Mongoose transaction session.
- * @param {mongoose.Types.ObjectId} drawId - The ID of the draw for which the ticket is generated.
- * @returns {Promise<string>} A unique ticket number.
- * @throws {ApiError} If a unique number cannot be found after 50 attempts.
- */
+// Generate a ticket number and make sure it's not already taken in this draw. Retries up to 50 times before giving up.
 async function generateUniqueTicketNumber(session, drawId) {
   for (let i = 0; i < 50; i += 1) {
     const ticketNumber = generateTicketNumber();
@@ -104,16 +86,7 @@ async function generateUniqueTicketNumber(session, drawId) {
   throw new ApiError(500, 'Could not allocate unique ticket numbers');
 }
 
-/**
- * Fulfills a payment after successful verification from Chapa.
- * Updates the payment status, deposits funds into the user's wallet,
- * deducts the ticket cost, issues the tickets, and updates the draw revenue.
- * All these operations are wrapped in a database transaction to ensure atomicity.
- * 
- * @param {string} txRef - The transaction reference of the payment to fulfill.
- * @returns {Promise<Object>} An object containing the updated payment, issued tickets, and new user balance.
- * @throws {ApiError} If the payment is not found, verification fails, or there are insufficient funds.
- */
+// Once Chapa verifies the payment, this function completes the order: records the deposit, deducts the ticket cost, generates unique tickets, and updates draw statistics. All inside a database transaction to prevent errors.
 export async function fulfillPaymentFromChapa(txRef) {
   const payment = await Payment.findOne({ txRef }).populate('drawId');
   if (!payment) {
