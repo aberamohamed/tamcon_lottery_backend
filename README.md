@@ -76,6 +76,10 @@ CHAPA_SECRET_KEY=CHASECK_TEST-q1w2e3r4t5y6u7i8o9p0a1s2d3f4g5h6
 CHAPA_WEBHOOK_SECRET=your_test_webhook_secret
 ```
 
+When completing mock transactions on the Chapa payment sandbox page in **Test Mode**, you can use the following credentials:
+* **Mock Phone Number**: `0900123456`
+* **Mock OTP Code**: `12345`
+
 ## Further reading
 
 See `DEPLOYMENT.md` for replica sets, TLS, secrets, and scaling guidance.
