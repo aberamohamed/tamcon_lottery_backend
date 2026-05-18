@@ -1,16 +1,18 @@
 // Secure configuration helpers for handling authentication HTTP-Only cookies inside Express responses.
 import { env } from '../config/env.js';
 
+// Short-lived Access Token cookie expiration: 15 minutes (15m * 60s * 1000ms)
 const ACCESS_MS = 15 * 60 * 1000;
+// Long-lived Refresh Token cookie expiration: 7 days (7d * 24h * 60m * 60s * 1000ms)
 const REFRESH_MS = 7 * 24 * 60 * 60 * 1000;
 
 // Define secure browser instructions (like blocking frontend JS access with httpOnly).
 function baseCookieOptions() {
   const opts = {
-    httpOnly: true,
-    secure: Boolean(env.COOKIE_SECURE),
-    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax',
-    path: '/',
+    httpOnly: true, // Prevent client-side JavaScript from accessing the cookie
+    secure: Boolean(env.COOKIE_SECURE), // Only send cookie over HTTPS
+    sameSite: env.NODE_ENV === 'production' ? 'strict' : 'lax', // Protect against CSRF attacks
+    path: '/', // which allows cookies to be sent to all pages
   };
   if (env.COOKIE_DOMAIN) {
     opts.domain = env.COOKIE_DOMAIN;
