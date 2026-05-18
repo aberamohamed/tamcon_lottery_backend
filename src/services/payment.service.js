@@ -58,10 +58,39 @@ export async function createCheckoutSession({ user, quantity }) {
     },
   };
 
-  const chapa = await initializeTransaction(payload);
+  let chapa;
+  try {
+    chapa = await initializeTransaction(payload);
+  } catch (error) {
+    await Payment.findByIdAndUpdate(payment._id, { status: 'failed' });
+    await WalletTransaction.create({
+      userId: user._id,
+      userFullName: user.fullName,
+      type: 'deposit',
+      amount,
+      balanceBefore: user.walletBalance || 0,
+      balanceAfter: user.walletBalance || 0,
+      referenceId: payment._id,
+      description: `Failed to initialize Chapa payment: ${error.message || 'Network timeout'}`,
+      status: 'failed',
+    });
+    throw new ApiError(502, `Payment initialization failed: ${error.message || 'Connection timeout'}`, error);
+  }
+
   const checkoutUrl = chapa?.data?.checkout_url;
   if (!checkoutUrl) {
     await Payment.findByIdAndUpdate(payment._id, { status: 'failed' });
+    await WalletTransaction.create({
+      userId: user._id,
+      userFullName: user.fullName,
+      type: 'deposit',
+      amount,
+      balanceBefore: user.walletBalance || 0,
+      balanceAfter: user.walletBalance || 0,
+      referenceId: payment._id,
+      description: 'Chapa failed to return a checkout URL.',
+      status: 'failed',
+    });
     throw new ApiError(502, 'Could not start payment session', chapa);
   }
 
@@ -99,14 +128,56 @@ export async function fulfillPaymentFromChapa(txRef) {
     return { alreadyProcessed: true, payment };
   }
 
-  const remote = await verifyTransaction(txRef);
+  let remote;
+  try {
+    remote = await verifyTransaction(txRef);
+  } catch (error) {
+    payment.status = 'failed';
+    await payment.save();
+
+    const exists = await WalletTransaction.findOne({ referenceId: payment._id, status: 'failed' });
+    if (!exists) {
+      const user = await User.findById(payment.userId);
+      if (user) {
+        await WalletTransaction.create({
+          userId: payment.userId,
+          userFullName: payment.userFullName,
+          type: 'deposit',
+          amount: payment.amount,
+          balanceBefore: user.walletBalance || 0,
+          balanceAfter: user.walletBalance || 0,
+          referenceId: payment._id,
+          description: `Chapa verification query failed: ${error.message || 'Connection timeout'}`,
+          status: 'failed',
+        });
+      }
+    }
+    throw new ApiError(502, `Payment verification query failed: ${error.message || 'Connection timeout'}`, error);
+  }
+
   const data = remote?.data ?? remote;
   const status = String(data?.status || data?.payment_status || remote?.status || '').toLowerCase();
 
   if (status !== 'success') {
-    if (status === 'failed' || status === 'cancelled') {
-      payment.status = status;
-      await payment.save();
+    payment.status = 'failed';
+    await payment.save();
+
+    const exists = await WalletTransaction.findOne({ referenceId: payment._id, status: 'failed' });
+    if (!exists) {
+      const user = await User.findById(payment.userId);
+      if (user) {
+        await WalletTransaction.create({
+          userId: payment.userId,
+          userFullName: payment.userFullName,
+          type: 'deposit',
+          amount: payment.amount,
+          balanceBefore: user.walletBalance || 0,
+          balanceAfter: user.walletBalance || 0,
+          referenceId: payment._id,
+          description: `Payment verification failed: Chapa reported status as "${status}"`,
+          status: 'failed',
+        });
+      }
     }
     throw new ApiError(400, `Payment verification failed: status is ${status}`);
   }
