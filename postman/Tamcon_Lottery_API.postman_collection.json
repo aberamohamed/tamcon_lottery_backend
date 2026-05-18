@@ -16,13 +16,34 @@
     ]
   },
   "variable": [
-    { "key": "host", "value": "http://localhost:4000" },
-    { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
-    { "key": "email", "value": "aberamohammed19@gmail.com" },
-    { "key": "accessToken", "value": "" },
-    { "key": "refreshToken", "value": "" },
-    { "key": "drawId", "value": "" },
-    { "key": "chapaTxRef", "value": "" }
+    {
+      "key": "host",
+      "value": "http://localhost:4000"
+    },
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:4000/api/v1"
+    },
+    {
+      "key": "email",
+      "value": "aberamohammed29@gmail.com"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "drawId",
+      "value": ""
+    },
+    {
+      "key": "chapaTxRef",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -31,7 +52,9 @@
         {
           "name": "Health",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": "{{host}}/health",
@@ -48,9 +71,16 @@
         {
           "name": "1. Create account (register)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"fullName\": \"Test User\"\n}"
@@ -63,9 +93,16 @@
         {
           "name": "2. Request OTP",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\"\n}"
@@ -106,9 +143,16 @@
             }
           ],
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp\": \"000000\",\n  \"useHttpOnlyCookies\": false\n}"
@@ -131,9 +175,16 @@
         {
           "name": "Refresh session",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
@@ -160,7 +211,9 @@
         {
           "name": "Current draw",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/lottery/current",
@@ -187,7 +240,9 @@
         {
           "name": "Chapa config (public key)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/payments/chapa/config",
@@ -221,7 +276,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"quantity\": 1\n}"
@@ -234,7 +294,9 @@
         {
           "name": "Chapa callback (browser return)",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "GET",
             "header": [],
             "url": "{{baseUrl}}/payments/chapa/callback?trx_ref={{chapaTxRef}}",
@@ -265,13 +327,34 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/users?page=1&limit=50",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "users"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "users"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "50" },
-                { "key": "role", "value": "admin", "disabled": true, "description": "customer | admin" },
-                { "key": "search", "value": "", "disabled": true, "description": "Filter by email or fullName" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "role",
+                  "value": "admin",
+                  "disabled": true,
+                  "description": "customer | admin"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true,
+                  "description": "Filter by email or fullName"
+                }
               ]
             },
             "description": "Paginated list of all users. Optional `role` and `search` query params."
@@ -294,12 +377,28 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/transactions?page=1&limit=50",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "transactions"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "transactions"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "50" },
-                { "key": "type", "value": "win_reward", "disabled": true, "description": "win_reward | ticket_purchase | adjustment" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "type",
+                  "value": "win_reward",
+                  "disabled": true,
+                  "description": "win_reward | ticket_purchase | adjustment"
+                }
               ]
             }
           },
@@ -330,12 +429,28 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/admin/draws?page=1&limit=50&status=open",
-              "host": ["{{baseUrl}}"],
-              "path": ["admin", "draws"],
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "admin",
+                "draws"
+              ],
               "query": [
-                { "key": "page", "value": "1" },
-                { "key": "limit", "value": "50" },
-                { "key": "status", "value": "open", "disabled": true, "description": "open | completed" }
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "status",
+                  "value": "open",
+                  "disabled": true,
+                  "description": "open | completed"
+                }
               ]
             }
           },
@@ -354,7 +469,12 @@
           "name": "Trigger weekly draw",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"drawId\": \"{{drawId}}\"\n}"
@@ -373,10 +493,15 @@
         {
           "name": "Webhook — charge.success",
           "request": {
-            "auth": { "type": "noauth" },
+            "auth": {
+              "type": "noauth"
+            },
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "x-chapa-signature",
                 "value": "<HMAC-SHA256 hex of raw body using CHAPA_WEBHOOK_SECRET>",
