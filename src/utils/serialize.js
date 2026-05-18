@@ -1,3 +1,4 @@
+// Format a Mongoose user document to a clean JSON object for safe delivery to clients (stripping out sensitive tokens/passwords).
 export function toPublicUser(user) {
   if (!user) return null;
   return {

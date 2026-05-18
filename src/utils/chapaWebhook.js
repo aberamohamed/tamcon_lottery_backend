@@ -1,5 +1,6 @@
 import crypto from 'crypto';
 
+// Securely verify that the webhook request came directly from Chapa by matching the signature header with our calculated SHA256 HMAC hash.
 export function verifyChapaSignature(rawBody, headers, secret) {
   if (!secret) return false;
   const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
