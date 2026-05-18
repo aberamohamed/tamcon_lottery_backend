@@ -30,10 +30,18 @@ export async function executeWeeklyDraw({ drawId, admin, ip }) {
         throw new ApiError(400, 'Draw must be open to run');
       }
 
-      const revenue = await recalculateDrawRevenue(draw._id, session);
-      const prizePool = Math.floor(revenue * env.PRIZE_POOL_PERCENT);
+      const ticketCount = await Ticket.countDocuments({ drawId: draw._id }).session(session);
+      if (ticketCount < 2) {
+        throw new ApiError(400, 'Cannot trigger draw. A minimum of 2 purchased tickets is required to run the draw.');
+      }
 
-      const winningNumber = generateWinningNumber();
+      const revenue = await recalculateDrawRevenue(draw._id, session);
+      const prizePool = Number((revenue * env.PRIZE_POOL_PERCENT).toFixed(2));
+
+      // Select a winning number randomly from the pool of actually purchased tickets for this draw
+      const tickets = await Ticket.find({ drawId: draw._id }).session(session).select('ticketNumber');
+      const randomIndex = Math.floor(Math.random() * tickets.length);
+      const winningNumber = tickets[randomIndex].ticketNumber;
 
       const winners = await Ticket.find({ drawId: draw._id, ticketNumber: winningNumber })
         .session(session)
@@ -51,21 +59,24 @@ export async function executeWeeklyDraw({ drawId, admin, ip }) {
       let totalPayout = 0;
 
       if (winners.length > 0 && prizePool > 0) {
-        const baseShare = Math.floor(prizePool / winners.length);
-        let remainder = prizePool - baseShare * winners.length;
+        // Precise division using cents to guarantee exact splits and avoid floating point inaccuracies
+        const prizePoolCents = Math.round(prizePool * 100);
+        const baseShareCents = Math.floor(prizePoolCents / winners.length);
+        let remainderCents = prizePoolCents - baseShareCents * winners.length;
 
         for (const w of winners) {
-          let share = baseShare;
-          if (remainder > 0) {
-            share += 1;
-            remainder -= 1;
+          let shareCents = baseShareCents;
+          if (remainderCents > 0) {
+            shareCents += 1;
+            remainderCents -= 1;
           }
-          totalPayout += share;
+          const share = Number((shareCents / 100).toFixed(2));
+          totalPayout = Number((totalPayout + share).toFixed(2));
 
           const user = await User.findById(w.userId).session(session);
           if (!user) continue;
-          const balanceBefore = user.walletBalance;
-          const balanceAfter = balanceBefore + share;
+          const balanceBefore = user.walletBalance || 0;
+          const balanceAfter = Number((balanceBefore + share).toFixed(2));
           user.walletBalance = balanceAfter;
           await user.save({ session });
 

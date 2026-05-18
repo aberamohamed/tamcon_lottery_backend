@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { LotteryDraw } from '../models/LotteryDraw.js';
 import { getDrawWeekBounds } from '../utils/weekBounds.js';
-import { env } from '../config/env.js';
 import { ApiError } from '../utils/ApiError.js';
 import { Payment } from '../models/Payment.js';
 
