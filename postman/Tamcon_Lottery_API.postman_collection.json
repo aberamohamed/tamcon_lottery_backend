@@ -18,7 +18,7 @@
   "variable": [
     { "key": "host", "value": "http://localhost:4000" },
     { "key": "baseUrl", "value": "http://localhost:4000/api/v1" },
-    { "key": "email", "value": "abera.mohammed29@gmail.com" },
+    { "key": "email", "value": "aberamohammed19@gmail.com" },
     { "key": "accessToken", "value": "" },
     { "key": "refreshToken", "value": "" },
     { "key": "drawId", "value": "" },
